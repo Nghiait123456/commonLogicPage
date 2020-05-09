@@ -8,12 +8,21 @@
  $valueOp1 = (  ($logicInput['logic1']['valueRaltime']) && ( ($logicInput['logic2']['valueRaltime']) || (!$logicInput['logic3']['valueRaltime']) )   ) ;
  $valueOp2 = (  ($logicInput['logic4']['valueRaltime']) && ( ($logicInput['logic1']['valueRaltime']) || (!$logicInput['logic2']['valueRaltime']) )   ) ;
 $valueOp3 = (  ($logicInput['logic3']['valueRaltime']) && ( ($logicInput['logic5']['valueRaltime']) || (!$logicInput['logic6']['valueRaltime']) )   ) ;
-$logicOutput =['logic1'=>['code'=>"O1", 'proiority'=>2, 'valueRealtime'=>$valueOp1],
-               'logic2'=>['code'=>"O2", 'proiority'=>1,  'valueRealtime'=> $valueOp2],
-              'logic3'=>['code'=>"O1", 'proiority'=>2, 'valueRealtime'=>$valueOp3]
+$logicOutput =[ ['code'=>"O1", 'priority'=>1, 'name'=>'logic1','valueRealtime'=>$valueOp1],
+                ['code'=>"O2", 'priority'=>2, 'name'=>'logic2', 'valueRealtime'=> $valueOp2],
+                ['code'=>"O1", 'priority'=>3,'name'=>'logic3', 'valueRealtime'=>$valueOp3]
               ];
 $test =[is_string(),is_array()];
 var_dump($test);
+//$a = new CommonLogicPage();
+//$a->setInput($logicOutput)->startProcess();
+//$a->getListHasMaxPriority();
+//$a->getNameFromMaxPriority();
+//....
+////if continue set input without new(), used ressetProperty
+//$a->resetProperty();
+
+
 
 class CommonLogicPage
 {
@@ -26,10 +35,11 @@ class CommonLogicPage
 //
 //O1,O2,O3 ,,, { name=>"",code=>"", priority=>interger,  value=>{true,false } }
 protected $_inputs = [];
+protected $_listPriority= [];
 private $_maxProperty;
 private $_maxKeyRoot;
-private $_outputKey=[];
-
+private $caseMaxProiority =[];
+const  listKey = ['code','proiority','valueRealtime'];
 public function __construct( )
 {
     $this->resetProperty();
@@ -39,10 +49,11 @@ public function __construct( )
 
 // call in contruct and before start other process withow new object
 public function  resetProperty(){
-    $this->_inputs = [];
-    $this->_maxProperty = null;
-    $this->_maxKeyRoot = null;
-    $this->_outputKey=[];
+     $this->_inputs = [];
+     $this->_listPriority= [];
+     $this->_maxProperty = null;
+     $this->_maxKeyRoot = null;
+    $caseMaxProiority =[];
 }
 public  function setInput(array  $inputs){
     if(empty($inputs)){
@@ -52,37 +63,67 @@ public  function setInput(array  $inputs){
     return $this;
 }
 
-public  function  startProcess(){
+public  function  startProcess() {
     $this->validateDataInput($this->_inputs);
-    $this->findMaxProperty();
+    $this->parserInput( $this->_inputs, 'proiority');
+    $this->setListHasMaxPriority();
     return $this;
 }
 
-const  listKey = ['code','proiority','valueRealtime'];
 
 
 
-public function grapKey( array $inputs, string $keygrab ){
-    $output = [$keygrab=>[], 'mapKeyGrabwithRootkey'=>[]];
+
+public function filterKey( array $inputs, string $keyFitler ){
+    $listsProperty = [];
     foreach ($inputs as $key=>$value){
-        $output[$keygrab] += $value[$keygrab];
-        $output['mapRootkeywithKeyGrab'] +=  [$value[$keygrab]=>$key];
+        if($value['valueRealtime']){
+            $listsProperty[]= $value['priority'];
+        }
     }
-    $this->_outputKey = $output;
+    $this->_listPriority = $listsProperty;
     return $this;
 }
 
-public function findMaxProperty( array $input ){
-    $min =  min($input);
+public function findMaxProperty( array $listValue ){
+    $min =  min($listValue);
     $this->_maxProperty = $min;
-    $this->_maxKeyRoot = $this->_outputKey['mapRootkeywithKeyGrab'][$min];
     return $this;
 }
 
+public function  setListHasMaxPriority(){
+  if(  empty($this->_listPriority) && empty($this->_maxProperty) ){
+      throw new \Exception('Please perform exactly process ');
+  }
+  foreach ($this->_inputs as $key=>$value){
+      if($value['priority'] === $this->_maxProperty ){
+          $this->caseMaxProiority  = [$key=>$value];
+          return $this;
+      }
+  }
+}
 
-protected function parserInput(array $inputs, string $keygrab){
-   $this->grapKey($inputs,'proiority');
-   $this->findMaxProperty($this->_outputKey[$keygrab]);
+
+public function getListHasMaxPriority(){
+    if(  empty($this->caseMaxProiority )  ){
+        throw new \Exception('Please perform exactly process ');
+    }
+    return $this->caseMaxProiority;
+}
+
+public function getNameFromMaxPriority(){
+    if(  empty($this->caseMaxProiority )  ){
+        throw new \Exception('Please perform exactly process ');
+    }
+    return $this->caseMaxProiority['name'];
+}
+
+
+
+
+protected function parserInput(array $inputs, string $keyFitler){
+   $this->filterKey($inputs,$keyFitler);
+   $this->findMaxProperty($this->_listPriority);
    return $this;
 }
 
@@ -105,9 +146,9 @@ public function validateDataInput(array $inputs)
     foreach ($inputs as $key => $value) {
         // check missing key,value
         $this->checkMissingKey(self::listKey,$value);
-        // check type
-        if(  (!is_string($value['code']))  ||  (!is_int($value['proiority']))  ||  (!is_string($value['defineName']))  ){
-                throw new \Exception('type of varible of '.$key.' incorrect');
+        // check type and check not null
+        if(  (!is_string($value['code']))  ||  (!is_int($value['priority']))  ||  (!is_bool($value['valueRealtime']))  ){
+                throw new \Exception('type or value of varible of '.$key.' incorrect');
                 }
     };
 }
